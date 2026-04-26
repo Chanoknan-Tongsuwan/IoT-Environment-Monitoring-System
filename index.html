@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - AirQ Monitor</title>
+    <link rel="stylesheet" href="style.css">
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <style>
+        .login-wrapper { display: flex; justify-content: center; align-items: center; width: 100%; height: 100%; }
+        .login-card { background: var(--card-bg); padding: 40px; border-radius: var(--border-radius); box-shadow: var(--shadow); width: 100%; max-width: 400px; text-align: center; backdrop-filter: var(--glass-blur); border: var(--glass-border); }
+        .fade-in { animation: fadeIn 0.4s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .login-header { font-size: 32px; font-weight: 700; color: var(--text-main); margin-bottom: 5px; }
+        .login-header span { color: var(--info); }
+        .login-sub { color: var(--text-muted); margin-bottom: 30px; font-size: 15px; }
+        .input-group { margin-bottom: 20px; text-align: left; position: relative; }
+        .input-icon { position: absolute; left: 15px; top: 40px; color: rgba(255,255,255,0.5); font-size: 20px; }
+        .forgot-link { text-align: right; margin-top: -10px; margin-bottom: 20px; }
+        .forgot-link a { font-size: 13px; color: var(--info); text-decoration: none; transition: var(--transition); }
+        .forgot-link a:hover { color: white; }
+        .toggle-link { margin-top: 25px; font-size: 14px; color: var(--text-muted); }
+        .toggle-link a { color: var(--info); text-decoration: none; font-weight: 600; transition: var(--transition); }
+        .toggle-link a:hover { text-decoration: underline; color: white; }
+    </style>
+</head>
+<body>
+    <div class="login-wrapper">
+        <div class="login-card fade-in">
+            <div class="login-header">AirQ <span>Monitor</span></div>
+            <div class="login-sub">เข้าสู่ระบบการจัดการสภาพแวดล้อม</div>
+            
+            <form id="loginForm">
+                <div class="input-group">
+                    <label for="loginUsername">ชื่อผู้ใช้งาน (Username)</label>
+                    <i class='bx bx-user input-icon'></i>
+                    <input type="text" id="loginUsername" placeholder="admin" required autocomplete="username" style="padding-left: 45px;">
+                </div>
+                
+                <div class="input-group">
+                    <label for="loginPassword">รหัสผ่าน (Password)</label>
+                    <i class='bx bx-lock-alt input-icon'></i>
+                    <input type="password" id="loginPassword" placeholder="••••••••" required autocomplete="current-password" style="padding-left: 45px;">
+                </div>
+                
+                
+                
+                <button type="submit" class="btn btn-primary" id="loginBtn">เข้าสู่ระบบ</button>
+            </form>
+            
+            <div class="toggle-link">
+                USER : admin
+                PASSWORD : 123456
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function checkInitialAuth() {
+            try {
+                const res = await fetch('api/api.php?action=check_auth');
+                const data = await res.json();
+                if (data.status === 'success') window.location.href = "dashboard.html";
+            } catch (error) { console.error("Auth check failed:", error); }
+        }
+        checkInitialAuth();
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('loginBtn'); 
+            btn.innerText = "กำลังตรวจสอบ..."; 
+            btn.disabled = true;
+            
+            try {
+                const res = await fetch('api/api.php?action=login', {
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        username: document.getElementById('loginUsername').value.trim(), 
+                        password: document.getElementById('loginPassword').value 
+                    })
+                });
+                const result = await res.json();
+                
+                if (result.status === 'success') {
+                    window.location.href = "dashboard.html";
+                } else {
+                    alert(result.message || "การเข้าสู่ระบบล้มเหลว");
+                    btn.innerText = "เข้าสู่ระบบ"; btn.disabled = false;
+                }
+            } catch (error) {
+                alert("ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้");
+                btn.innerText = "เข้าสู่ระบบ"; btn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>

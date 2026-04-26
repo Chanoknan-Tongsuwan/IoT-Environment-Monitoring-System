@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - AirQ Monitor</title>
+    <link rel="stylesheet" href="style.css">
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <style>
+        /* สไตล์เฉพาะส่วนของ Dashboard (Building Cards) */
+        .building-avg-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .building-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+        .building-card:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+        .building-card h4 {
+            margin: 0 0 15px 0;
+            color: #fff;
+            font-size: 18px;
+            border-bottom: 1px dashed rgba(255,255,255,0.2);
+            padding-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .building-card h4 .room-count {
+            font-size: 12px;
+            color: var(--text-muted);
+            background: rgba(255,255,255,0.1);
+            padding: 4px 10px;
+            border-radius: 20px;
+        }
+        .b-stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        .b-stat-item { 
+            display: flex; 
+            flex-direction: column; 
+        }
+        .b-stat-label { 
+            font-size: 12px; 
+            color: var(--text-muted); 
+            margin-bottom: 4px; 
+        }
+        .b-stat-value { 
+            font-size: 16px; 
+            font-weight: 600; 
+        }
+        
+        /* Typography Colors */
+        .val-pm { color: var(--warning); }
+        .val-temp { color: var(--danger); }
+        .val-humid { color: var(--info); }
+        .val-odor { color: #9C27B0; }
+    </style>
+</head>
+<body>
+    
+    <!-- Sidebar Navigation -->
+    <nav class="sidebar">
+        <div>
+            <div class="sidebar-header">AirQ <span>Monitor</span></div>
+            <ul>
+                <li class="active"><a href="dashboard.html"><i class='bx bxs-dashboard'></i> Dashboard</a></li>
+                <li><a href="room.html"><i class='bx bxs-layout'></i> Rooms</a></li>
+                <li><a href="setting.html"><i class='bx bxs-cog'></i> Settings</a></li>
+            </ul>
+        </div>
+        <ul class="logout-section">
+            <li><a href="#" id="btnLogout" class="logout-btn"><i class='bx bx-log-out'></i> ออกจากระบบ</a></li>
+        </ul>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <header>
+            <h1>ภาพรวมระบบ (Overview)</h1>
+            <p>สรุปข้อมูลสภาพแวดล้อมจากเซนเซอร์ทั้งหมดในอาคารแบบ Real-time</p>
+        </header>
+
+        <!-- Top Statistics -->
+        <div class="stats-grid">
+            <div class="stat-item border-info">
+                <span class="label">ห้องเรียนทั้งหมด</span>
+                <span class="stat-val" id="totalRooms">0</span>
+                <small style="color: var(--info);"><i class='bx bx-wifi'></i> Connected</small>
+            </div>
+            <div class="stat-item border-success">
+                <span class="label">อากาศดี (ปกติ)</span>
+                <span class="stat-val" id="healthyRooms">0</span>
+                <small style="color: var(--success);"><i class='bx bx-check-shield'></i> Healthy Room</small>
+            </div>
+            <div class="stat-item border-warning">
+                <span class="label">เฝ้าระวัง</span>
+                <span class="stat-val" id="warningRooms">0</span>
+                <small style="color: var(--warning);"><i class='bx bx-error-circle'></i> Warning State</small>
+            </div>
+            <div class="stat-item border-danger">
+                <span class="label">อันตราย/วิกฤต</span>
+                <span class="stat-val" id="dangerRooms">0</span>
+                <small style="color: var(--danger);"><i class='bx bx-error'></i> Action Required</small>
+            </div>
+        </div>
+
+        <!-- Building Averages -->
+        <div class="chart-container">
+            <h3><i class='bx bxs-building-house'></i> ค่าเฉลี่ยสภาพอากาศแยกตามอาคาร</h3>
+            <p style="font-size: 14px; color: var(--text-muted);">ข้อมูลเฉลี่ยปัจจุบัน รวบรวมจากทุกเซนเซอร์ในแต่ละอาคาร</p>
+            <div id="buildingAveragesContainer" class="building-avg-grid">
+                <p style="color: var(--text-muted); width: 100%; text-align: center;">กำลังคำนวณข้อมูล...</p>
+            </div>
+        </div>
+
+        <!-- Alerts Table -->
+        <div class="chart-container">
+            <h3><i class='bx bx-table'></i> สถานะห้องทั้งหมดล่าสุด</h3>
+            <table id="alertsTable">
+                <thead>
+                    <tr>
+                        <th>เวลา</th>
+                        <th>สถานที่</th>
+                        <th>สถานะ</th>
+                        <th>รายละเอียด</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <tr>
+                        <td colspan="4" style="text-align: center; color: var(--text-muted);">กำลังโหลดข้อมูล...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        // 1. Authentication Check
+        async function checkAuth() {
+            try {
+                const res = await fetch('api/api.php?action=check_auth');
+                const data = await res.json();
+                if (data.status !== 'success') {
+                    window.location.href = "index.html";
+                }
+            } catch (error) {
+                console.error("Auth check failed:", error);
+            }
+        }
+
+        // 2. Logout Handler
+        document.getElementById('btnLogout').addEventListener('click', async (e) => {
+            e.preventDefault();
+            await fetch('api/api.php?action=logout');
+            window.location.href = "index.html";
+        });
+
+        // 3. Load Dashboard Data
+        async function loadDashboard() {
+            try {
+                const res = await fetch('api/api.php?action=dashboard');
+                const data = await res.json();
+
+                let total = 0, healthy = 0, warning = 0, danger = 0;
+                let tableHtml = '';
+                let buildings = {};
+
+                data.rooms.forEach(room => {
+                    // Statistics Logic
+                    total++;
+                    if (room.status_color === 'success') healthy++; 
+                    else if (room.status_color === 'warning') warning++; 
+                    else if (room.status_color === 'danger') danger++;
+                    
+                    // Table Row Construction
+                    let timeStr = new Date(room.updated_at).toLocaleTimeString('th-TH');
+                    let iconHtml = getStatusIcon(room.status_color);
+                    let detail = getStatusDetail(room);
+                    
+                    tableHtml += `
+                        <tr>
+                            <td>${timeStr}</td>
+                            <td>ห้อง ${room.room_id}</td>
+                            <td class="text-${room.status_color}">${iconHtml}</td>
+                            <td>${detail}</td>
+                        </tr>`;
+
+                    // Building Grouping Logic
+                    processBuildingData(room, buildings);
+                });
+
+                // Update UI Elements
+                updateDashboardStats(total, healthy, warning, danger);
+                updateAlertsTable(tableHtml);
+                renderBuildingCards(buildings);
+
+            } catch (error) {
+                console.error("Failed to load dashboard data:", error);
+            }
+        }
+
+        // Helper Functions for Clean Code
+        function getStatusIcon(color) {
+            if (color === 'success') return "<i class='bx bx-check-circle'></i> ปกติ";
+            if (color === 'warning') return "<i class='bx bxs-bell-ring'></i> เตือน";
+            return "<i class='bx bxs-error-alt'></i> วิกฤต";
+        }
+
+        function getStatusDetail(room) {
+            if (room.status_color === 'success') return "สภาพอากาศปกติ";
+            if (room.pm > 37.5) return `PM2.5 สูง (${room.pm})`;
+            return room.status_text;
+        }
+
+        function processBuildingData(room, buildingsDict) {
+            let bName = room.room_id; 
+            let match = room.room_id.match(/^(\d{2})-?(\d{4})$/);
+            
+            if (match) {
+                bName = "อาคาร " + match[1];
+            } 
+
+            if (!buildingsDict[bName]) {
+                buildingsDict[bName] = { count: 0, pm: 0, temp: 0, humid: 0, odor: 0 };
+            }
+
+            buildingsDict[bName].count++;
+            buildingsDict[bName].pm += parseFloat(room.pm || 0);
+            buildingsDict[bName].temp += parseFloat(room.temp || 0);
+            buildingsDict[bName].humid += parseFloat(room.humid || 0);
+            buildingsDict[bName].odor += parseFloat(room.odor || 0);
+        }
+
+        function updateDashboardStats(total, healthy, warning, danger) {
+            document.getElementById('totalRooms').innerText = total; 
+            document.getElementById('healthyRooms').innerText = healthy;
+            document.getElementById('warningRooms').innerText = warning; 
+            document.getElementById('dangerRooms').innerText = danger;
+        }
+
+        function updateAlertsTable(htmlContent) {
+            const tbody = document.getElementById('tableBody');
+            if (!htmlContent) {
+                tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted);">ไม่มีข้อมูล</td></tr>`;
+            } else {
+                tbody.innerHTML = htmlContent;
+            }
+        }
+
+        function renderBuildingCards(buildingsDict) {
+            let buildingHtml = '';
+            
+            for (let b in buildingsDict) {
+                let count = buildingsDict[b].count;
+                let avgPm = (buildingsDict[b].pm / count).toFixed(1);
+                let avgTemp = (buildingsDict[b].temp / count).toFixed(1);
+                let avgHumid = (buildingsDict[b].humid / count).toFixed(1);
+                let avgOdor = (buildingsDict[b].odor / count).toFixed(1);
+
+                buildingHtml += `
+                    <div class="building-card">
+                        <h4><i class='bx bxs-building'></i> ${b} <span class="room-count">${count} เซนเซอร์</span></h4>
+                        <div class="b-stats-grid">
+                            <div class="b-stat-item">
+                                <span class="b-stat-label">อุณหภูมิเฉลี่ย</span>
+                                <span class="b-stat-value val-temp"><i class='bx bxs-thermometer'></i> ${avgTemp} °C</span>
+                            </div>
+                            <div class="b-stat-item">
+                                <span class="b-stat-label">ความชื้นเฉลี่ย</span>
+                                <span class="b-stat-value val-humid"><i class='bx bx-water'></i> ${avgHumid} %</span>
+                            </div>
+                            <div class="b-stat-item">
+                                <span class="b-stat-label">ฝุ่น PM 2.5</span>
+                                <span class="b-stat-value val-pm"><i class='bx bx-wind'></i> ${avgPm} µg/m³</span>
+                            </div>
+                            <div class="b-stat-item">
+                                <span class="b-stat-label">ระดับกลิ่น</span>
+                                <span class="b-stat-value val-odor"><i class='bx bx-spray-can'></i> ${avgOdor} ppm</span>
+                            </div>
+                        </div>
+                    </div>`;
+            }
+
+            const container = document.getElementById('buildingAveragesContainer');
+            if (buildingHtml === '') {
+                container.innerHTML = '<p style="color: var(--text-muted); width: 100%; text-align: center;">ยังไม่มีข้อมูลอาคารในระบบ</p>';
+            } else {
+                container.innerHTML = buildingHtml;
+            }
+        }
+
+        // Initialize Application
+        checkAuth();
+        loadDashboard(); 
+        setInterval(loadDashboard, 5000); 
+    </script>
+</body>
+</html>

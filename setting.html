@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - AirQ Monitor</title>
+    <link rel="stylesheet" href="style.css">
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <style>
+        .room-select { width: 100%; padding: 12px 18px; margin-bottom: 20px; border-radius: 12px; background: rgba(0, 0, 0, 0.3); color: white; border: 1px solid rgba(255,255,255,0.2); outline: none; font-size: 15px; }
+        .room-select:focus { border-color: var(--info); }
+        .room-select option { background: #1E2332; color: white; }
+        .radio-group { display: flex; gap: 20px; margin-bottom: 15px; font-size: 14px; }
+        .radio-group label { display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-muted); }
+        .checkbox-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; padding: 10px; background: rgba(255,255,255,0.03); border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); transition: var(--transition); }
+        .checkbox-row:hover { background: rgba(255,255,255,0.08); }
+        input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; accent-color: var(--danger); }
+    </style>
+</head>
+<body>
+    <nav class="sidebar">
+        <div>
+            <div class="sidebar-header">AirQ <span>Monitor</span></div>
+            <ul>
+                <li><a href="dashboard.html"><i class='bx bxs-dashboard'></i> Dashboard</a></li>
+                <li><a href="room.html"><i class='bx bxs-layout'></i> Rooms</a></li>
+                <li class="active"><a href="setting.html"><i class='bx bxs-cog'></i> Settings</a></li>
+            </ul>
+        </div>
+        <ul class="logout-section">
+            <li><a href="forgot-password.html" style="color: var(--text-muted);"><i class='bx bx-key'></i> เปลี่ยนรหัสผ่าน</a></li>
+            <li><a href="#" class="logout-btn" id="btnLogout"><i class='bx bx-log-out'></i> ออกจากระบบ</a></li>
+        </ul>
+    </nav>
+
+    <main class="main-content">
+        <header>
+            <h1>การตั้งค่า (Settings)</h1>
+            <p>ตั้งค่าเกณฑ์การแจ้งเตือน และจัดการรายชื่อห้องในระบบ</p>
+        </header>
+
+        <div class="card">
+            <h3><i class='bx bx-slider-alt'></i> กำหนดค่า Limit (Thresholds)</h3>
+            <select id="limitRoomSelect" class="room-select">
+                <option value="global">🌐 ค่าเริ่มต้น (Global)</option>
+            </select>
+            <div class="grid-2">
+                <div><label>ฝุ่น PM 2.5</label><input type="number" id="limitPm" placeholder="เช่น 50"></div>
+                <div><label>ความชื้น</label><input type="number" id="limitHumid" placeholder="เช่น 70"></div>
+                <div><label>อุณหภูมิ</label><input type="number" id="limitTemp" placeholder="เช่น 35"></div>
+                <div><label>ระดับกลิ่น</label><input type="number" id="limitOdor" placeholder="เช่น 50"></div>
+            </div>
+            <button class="btn btn-primary" id="saveLimitBtn" style="margin-top: 20px;">บันทึกค่า Limit</button>
+        </div>
+
+        <div class="card">
+            <h3><i class='bx bx-plus-circle'></i> เพิ่มห้องใหม่</h3>
+            <div class="radio-group">
+                <label><input type="radio" name="roomFormat" value="number" checked> แบบเลขห้อง (XX-XXXX)</label>
+                <label><input type="radio" name="roomFormat" value="text"> แบบระบุชื่ออิสระ</label>
+            </div>
+            <input type="text" id="newRoomId" placeholder="เช่น 05-0901" style="margin-bottom: 15px;">
+            <button class="btn btn-primary" id="addNewRoomBtn" style="background: var(--success);">บันทึกห้องใหม่</button>
+        </div>
+
+        <div class="card" style="border-left: 5px solid var(--danger);">
+            <h3><i class='bx bx-trash'></i> ลบห้องที่เลือก</h3>
+            <div id="roomListContainer" style="margin-bottom: 15px; max-height: 250px; overflow-y: auto;"></div>
+            <button class="btn btn-primary" id="deleteBtn" style="background: rgba(238, 93, 80, 0.2); color: var(--danger); border: 1px solid var(--danger);">
+                ลบห้องที่เลือก
+            </button>
+        </div>
+    </main>
+
+    <script>
+        // Auth Control
+        fetch('api/api.php?action=check_auth').then(r=>r.json()).then(d=>{ if(d.status!=='success') window.location.href="index.html"; });
+        document.getElementById('btnLogout').addEventListener('click', () => fetch('api/api.php?action=logout').then(()=>window.location.href="index.html"));
+
+        // Manage Room Formats
+        const roomInput = document.getElementById('newRoomId');
+        document.querySelectorAll('input[name="roomFormat"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                roomInput.value = ''; 
+                roomInput.placeholder = e.target.value === 'number' ? "เช่น 05-0901" : "เช่น ห้องประชุม A, Lab 1";
+            });
+        });
+
+        roomInput.addEventListener('input', function(e) {
+            const format = document.querySelector('input[name="roomFormat"]:checked').value;
+            if (format === 'number' && e.inputType !== 'deleteContentBackward') {
+                let val = this.value.replace(/\D/g, ''); 
+                if (val.length > 2) val = val.slice(0, 2) + '-' + val.slice(2, 6);
+                this.value = val;
+            }
+        });
+
+        // Load Rooms List
+        async function loadRoomList() {
+            try {
+                const res = await fetch('api/api.php?action=rooms');
+                const rooms = await res.json();
+                const select = document.getElementById('limitRoomSelect');
+                const list = document.getElementById('roomListContainer');
+                
+                list.innerHTML = ''; 
+                select.innerHTML = '<option value="global">🌐 ค่าเริ่มต้น (Global)</option>';
+                
+                rooms.forEach(r => {
+                    select.innerHTML += `<option value="${r.room_id}">🏠 ห้อง ${r.room_id}</option>`;
+                    list.innerHTML += `
+                        <label class="checkbox-row">
+                            <input type="checkbox" class="room-cb" value="${r.room_id}"> 
+                            <span>ห้อง ${r.room_id}</span>
+                        </label>`;
+                });
+            } catch(e) { console.error("Error loading room list:", e); }
+        }
+
+        // Add Room API
+        document.getElementById('addNewRoomBtn').onclick = async () => {
+            const room = roomInput.value.trim();
+            const format = document.querySelector('input[name="roomFormat"]:checked').value;
+
+            if(!room) return alert("กรุณาใส่ชื่อ/เลขห้อง");
+            if (format === 'number' && !/^\d{2}-\d{4}$/.test(room)) {
+                return alert("❌ รูปแบบเลขห้องไม่ถูกต้อง!\nกรุณากรอกในรูปแบบ XX-XXXX (เช่น 05-0901)");
+            }
+
+            try {
+                await fetch('api/api.php?action=add_room', { method: 'POST', body: JSON.stringify({room}) });
+                alert("✅ เพิ่มห้องสำเร็จ"); 
+                roomInput.value = '';
+                loadRoomList();
+            } catch(e) { alert("เกิดข้อผิดพลาดในการเพิ่มห้อง"); }
+        };
+
+        // Delete Room API
+        document.getElementById('deleteBtn').onclick = async () => {
+            const sel = Array.from(document.querySelectorAll('.room-cb:checked')).map(c => c.value);
+            if(sel.length === 0) return alert("กรุณาเลือกห้องที่ต้องการลบ");
+            
+            if(confirm(`ยืนยันการลบห้อง: ${sel.join(', ')} ใช่หรือไม่?`)) {
+                try {
+                    await fetch('api/api.php?action=delete_rooms', { method: 'POST', body: JSON.stringify({rooms: sel}) });
+                    alert("🗑️ ลบห้องสำเร็จ");
+                    loadRoomList();
+                } catch(e) { alert("เกิดข้อผิดพลาดในการลบห้อง"); }
+            }
+        };
+
+        // Threshold Limits Logic
+        document.getElementById('limitRoomSelect').addEventListener('change', loadLimits);
+
+        async function loadLimits() {
+            try {
+                const room = document.getElementById('limitRoomSelect').value;
+                const res = await fetch(`api/api.php?action=get_limits&room=${room}`);
+                const result = await res.json();
+                
+                if(result.status === 'success' && result.data && Object.keys(result.data).length > 0) {
+                    document.getElementById('limitPm').value = result.data.limit_pm || '';
+                    document.getElementById('limitHumid').value = result.data.limit_humid || '';
+                    document.getElementById('limitTemp').value = result.data.limit_temp || '';
+                    document.getElementById('limitOdor').value = result.data.limit_odor || '';
+                } else {
+                    document.getElementById('limitPm').value = '';
+                    document.getElementById('limitHumid').value = '';
+                    document.getElementById('limitTemp').value = '';
+                    document.getElementById('limitOdor').value = '';
+                }
+            } catch(e) { console.error("Error loading limits:", e); }
+        }
+
+        document.getElementById('saveLimitBtn').onclick = async () => {
+            const btn = document.getElementById('saveLimitBtn');
+            const room = document.getElementById('limitRoomSelect').value; 
+            
+            btn.innerText = "กำลังบันทึก..."; btn.disabled = true;
+            
+            const limits = { 
+                room: room, 
+                limit_pm: document.getElementById('limitPm').value, 
+                limit_humid: document.getElementById('limitHumid').value, 
+                limit_temp: document.getElementById('limitTemp').value, 
+                limit_odor: document.getElementById('limitOdor').value 
+            };
+            
+            try {
+                await fetch('api/api.php?action=save_limits', { 
+                    method: 'POST', 
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(limits) 
+                });
+                alert(`✅ บันทึกค่า Thresholds สำเร็จแล้ว!`);
+            } catch(e) { 
+                alert("เกิดข้อผิดพลาดในการบันทึกค่า"); 
+            } finally {
+                btn.innerText = "บันทึกค่า Limit"; btn.disabled = false;
+            }
+        };
+
+        // Initialize
+        loadRoomList().then(() => loadLimits());
+    </script>
+</body>
+</html>
