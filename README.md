@@ -37,25 +37,27 @@ Sensor / Node-RED
 ---
 
 ## 📂 โครงสร้างไฟล์
+```
 │
 ├── 🌐 frontend/
-│ ├── index.html # หน้า Login
-│ ├── dashboard.html # ภาพรวมข้อมูลทั้งหมด
-│ ├── room.html # แสดงรายการห้อง + ค้นหา
-│ ├── room-detail.html # รายละเอียด + กราฟย้อนหลัง
-│ ├── setting.html # ตั้งค่า (Admin)
-│ ├── register.html # สมัครสมาชิก (ทดสอบ)
-│ ├── forgot-password.html # รีเซ็ตรหัสผ่าน (ทดสอบ)
-│ └── style.css # ไฟล์ตกแต่ง UI
+│   ├── index.html            # หน้า Login
+│   ├── dashboard.html        # ภาพรวมข้อมูลทั้งหมด
+│   ├── room.html             # แสดงรายการห้อง + ค้นหา
+│   ├── room-detail.html      # รายละเอียด + กราฟย้อนหลัง
+│   ├── setting.html          # ตั้งค่า (Admin)
+│   ├── register.html         # สมัครสมาชิก (ทดสอบ)
+│   ├── forgot-password.html  # รีเซ็ตรหัสผ่าน (ทดสอบ)
+│   └── style.css             # ไฟล์ตกแต่ง UI
 │
 ├── ⚙️ backend/
-│ ├── db.php # เชื่อมต่อฐานข้อมูล
-│ ├── api.php # จัดการ request จาก frontend
-│ ├── update_sensor.php # รับค่าจาก Node-RED / Sensor
-│ └── webhook.php # เชื่อม LINE OA (Notification)
+│   ├── db.php                # เชื่อมต่อฐานข้อมูล
+│   ├── api.php               # จัดการ request จาก frontend
+│   ├── update_sensor.php     # รับค่าจาก Node-RED / Sensor
+│   └── webhook.php           # เชื่อม LINE OA (Notification)
 │
 └── 🗄️ database/
-└── (MySQL / phpMyAdmin)
+    └── (MySQL / phpMyAdmin)
+```
 
 ---
 
